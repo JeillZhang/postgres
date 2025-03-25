@@ -518,6 +518,7 @@ main(int argc, char **argv)
 		{"sync-method", required_argument, NULL, 15},
 		{"filter", required_argument, NULL, 16},
 		{"exclude-extension", required_argument, NULL, 17},
+		{"sequence-data", no_argument, &dopt.sequence_data, 1},
 
 		{NULL, 0, NULL, 0}
 	};
@@ -800,14 +801,6 @@ main(int argc, char **argv)
 	/* --column-inserts implies --inserts */
 	if (dopt.column_inserts && dopt.dump_inserts == 0)
 		dopt.dump_inserts = DUMP_DEFAULT_ROWS_PER_INSERT;
-
-	/*
-	 * Binary upgrade mode implies dumping sequence data even in schema-only
-	 * mode.  This is not exposed as a separate option, but kept separate
-	 * internally for clarity.
-	 */
-	if (dopt.binary_upgrade)
-		dopt.sequence_data = 1;
 
 	if (data_only && schema_only)
 		pg_fatal("options -s/--schema-only and -a/--data-only cannot be used together");
@@ -1275,6 +1268,7 @@ help(const char *progname)
 	printf(_("  --quote-all-identifiers      quote all identifiers, even if not key words\n"));
 	printf(_("  --rows-per-insert=NROWS      number of rows per INSERT; implies --inserts\n"));
 	printf(_("  --section=SECTION            dump named section (pre-data, data, or post-data)\n"));
+	printf(_("  --sequence-data              include sequence data in dump\n"));
 	printf(_("  --serializable-deferrable    wait until the dump can run without anomalies\n"));
 	printf(_("  --snapshot=SNAPSHOT          use given snapshot for the dump\n"));
 	printf(_("  --statistics-only            dump only the statistics, not schema or data\n"));
@@ -10498,7 +10492,6 @@ dumpRelationStats(Archive *fout, const RelStatsInfo *rsinfo)
 	PQExpBuffer out;
 	DumpId	   *deps = NULL;
 	int			ndeps = 0;
-	char	   *qualified_name;
 	int			i_attname;
 	int			i_inherited;
 	int			i_null_frac;
@@ -10563,15 +10556,16 @@ dumpRelationStats(Archive *fout, const RelStatsInfo *rsinfo)
 
 	out = createPQExpBuffer();
 
-	qualified_name = pg_strdup(fmtQualifiedDumpable(rsinfo));
-
 	/* restore relation stats */
 	appendPQExpBufferStr(out, "SELECT * FROM pg_catalog.pg_restore_relation_stats(\n");
 	appendPQExpBuffer(out, "\t'version', '%u'::integer,\n",
 					  fout->remoteVersion);
-	appendPQExpBufferStr(out, "\t'relation', ");
-	appendStringLiteralAH(out, qualified_name, fout);
-	appendPQExpBufferStr(out, "::regclass,\n");
+	appendPQExpBufferStr(out, "\t'schemaname', ");
+	appendStringLiteralAH(out, rsinfo->dobj.namespace->dobj.name, fout);
+	appendPQExpBufferStr(out, ",\n");
+	appendPQExpBufferStr(out, "\t'relname', ");
+	appendStringLiteralAH(out, rsinfo->dobj.name, fout);
+	appendPQExpBufferStr(out, ",\n");
 	appendPQExpBuffer(out, "\t'relpages', '%d'::integer,\n", rsinfo->relpages);
 	appendPQExpBuffer(out, "\t'reltuples', '%s'::real,\n", rsinfo->reltuples);
 	appendPQExpBuffer(out, "\t'relallvisible', '%d'::integer\n);\n",
@@ -10610,9 +10604,10 @@ dumpRelationStats(Archive *fout, const RelStatsInfo *rsinfo)
 		appendPQExpBufferStr(out, "SELECT * FROM pg_catalog.pg_restore_attribute_stats(\n");
 		appendPQExpBuffer(out, "\t'version', '%u'::integer,\n",
 						  fout->remoteVersion);
-		appendPQExpBufferStr(out, "\t'relation', ");
-		appendStringLiteralAH(out, qualified_name, fout);
-		appendPQExpBufferStr(out, "::regclass");
+		appendPQExpBufferStr(out, "\t'schemaname', ");
+		appendStringLiteralAH(out, rsinfo->dobj.namespace->dobj.name, fout);
+		appendPQExpBufferStr(out, ",\n\t'relname', ");
+		appendStringLiteralAH(out, rsinfo->dobj.name, fout);
 
 		if (PQgetisnull(res, rownum, i_attname))
 			pg_fatal("attname cannot be NULL");
@@ -10624,7 +10619,10 @@ dumpRelationStats(Archive *fout, const RelStatsInfo *rsinfo)
 		 * their attnames are not necessarily stable across dump/reload.
 		 */
 		if (rsinfo->nindAttNames == 0)
-			appendNamedArgument(out, fout, "attname", "name", attname);
+		{
+			appendPQExpBuffer(out, ",\n\t'attname', ");
+			appendStringLiteralAH(out, attname, fout);
+		}
 		else
 		{
 			bool		found = false;
@@ -10704,7 +10702,6 @@ dumpRelationStats(Archive *fout, const RelStatsInfo *rsinfo)
 							  .deps = deps,
 							  .nDeps = ndeps));
 
-	free(qualified_name);
 	destroyPQExpBuffer(out);
 	destroyPQExpBuffer(query);
 }
