@@ -127,25 +127,25 @@ static PgAioHandle *pgaio_inj_cur_handle;
  * To react to the completion of the IO as soon as it is known to have
  * completed, callbacks can be registered with pgaio_io_register_callbacks().
  *
- * To actually execute IO using the returned handle, the pgaio_io_prep_*()
- * family of functions is used. In many cases the pgaio_io_prep_*() call will
+ * To actually execute IO using the returned handle, the pgaio_io_start_*()
+ * family of functions is used. In many cases the pgaio_io_start_*() call will
  * not be done directly by code that acquired the handle, but by lower level
  * code that gets passed the handle. E.g. if code in bufmgr.c wants to perform
  * AIO, it typically will pass the handle to smgr.c, which will pass it on to
- * md.c, on to fd.c, which then finally calls pgaio_io_prep_*().  This
+ * md.c, on to fd.c, which then finally calls pgaio_io_start_*().  This
  * forwarding allows the various layers to react to the IO's completion by
  * registering callbacks. These callbacks in turn can translate a lower
  * layer's result into a result understandable by a higher layer.
  *
- * During pgaio_io_prep_*() the IO is staged (i.e. prepared for execution but
+ * During pgaio_io_start_*() the IO is staged (i.e. prepared for execution but
  * not submitted to the kernel). Unless in batchmode
  * (c.f. pgaio_enter_batchmode()), the IO will also get submitted for
  * execution. Note that, whether in batchmode or not, the IO might even
  * complete before the functions return.
  *
- * After pgaio_io_prep_*() the AioHandle is "consumed" and may not be
+ * After pgaio_io_start_*() the AioHandle is "consumed" and may not be
  * referenced by the IO issuing code. To e.g. wait for IO, references to the
- * IO can be established with pgaio_io_get_wref() *before* pgaio_io_prep_*()
+ * IO can be established with pgaio_io_get_wref() *before* pgaio_io_start_*()
  * is called.  pgaio_wref_wait() can be used to wait for the IO to complete.
  *
  *
@@ -391,7 +391,7 @@ pgaio_io_resowner_register(PgAioHandle *ioh)
 /*
  * Stage IO for execution and, if appropriate, submit it immediately.
  *
- * Should only be called from pgaio_io_prep_*().
+ * Should only be called from pgaio_io_start_*().
  */
 void
 pgaio_io_stage(PgAioHandle *ioh, PgAioOp op)
@@ -421,7 +421,7 @@ pgaio_io_stage(PgAioHandle *ioh, PgAioOp op)
 	needs_synchronous = pgaio_io_needs_synchronous_execution(ioh);
 
 	pgaio_debug_io(DEBUG3, ioh,
-				   "prepared (synchronous: %d, in_batch: %d)",
+				   "staged (synchronous: %d, in_batch: %d)",
 				   needs_synchronous, pgaio_my_backend->in_batchmode);
 
 	if (!needs_synchronous)
@@ -626,13 +626,21 @@ pgaio_io_reclaim(PgAioHandle *ioh)
 
 	/*
 	 * It's a bit ugly, but right now the easiest place to put the execution
-	 * of shared completion callbacks is this function, as we need to execute
+	 * of local completion callbacks is this function, as we need to execute
 	 * local callbacks just before reclaiming at multiple callsites.
 	 */
 	if (ioh->state == PGAIO_HS_COMPLETED_SHARED)
 	{
-		pgaio_io_call_complete_local(ioh);
+		PgAioResult local_result;
+
+		local_result = pgaio_io_call_complete_local(ioh);
 		pgaio_io_update_state(ioh, PGAIO_HS_COMPLETED_LOCAL);
+
+		if (ioh->report_return)
+		{
+			ioh->report_return->result = local_result;
+			ioh->report_return->target_data = ioh->target_data;
+		}
 	}
 
 	pgaio_debug_io(DEBUG4, ioh,
@@ -642,17 +650,9 @@ pgaio_io_reclaim(PgAioHandle *ioh)
 				   ioh->distilled_result.error_data,
 				   ioh->result);
 
-	/* if the IO has been defined, we might need to do more work */
+	/* if the IO has been defined, it's on the in-flight list, remove */
 	if (ioh->state != PGAIO_HS_HANDED_OUT)
-	{
 		dclist_delete_from(&pgaio_my_backend->in_flight_ios, &ioh->node);
-
-		if (ioh->report_return)
-		{
-			ioh->report_return->result = ioh->distilled_result;
-			ioh->report_return->target_data = ioh->target_data;
-		}
-	}
 
 	if (ioh->resowner)
 	{
