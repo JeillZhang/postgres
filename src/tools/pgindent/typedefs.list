@@ -714,6 +714,7 @@ EphemeralNamedRelationMetadata
 EphemeralNamedRelationMetadataData
 EquivalenceClass
 EquivalenceMember
+EquivalenceMemberIterator
 ErrorContextCallback
 ErrorData
 ErrorSaveContext
@@ -803,6 +804,7 @@ FieldSelect
 FieldStore
 File
 FileBackupMethod
+FileCopyMethod
 FileFdwExecutionState
 FileFdwPlanState
 FileNameMap
@@ -1670,6 +1672,10 @@ MemoryContextCounters
 MemoryContextData
 MemoryContextMethodID
 MemoryContextMethods
+MemoryStatsBackendState
+MemoryStatsContextId
+MemoryStatsCtl
+MemoryStatsEntry
 MemoryStatsPrintFunc
 MergeAction
 MergeActionState
