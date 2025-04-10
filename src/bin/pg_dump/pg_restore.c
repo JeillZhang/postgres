@@ -902,6 +902,8 @@ read_one_statement(StringInfo inBuf, FILE *pfile)
 			break;
 		}
 
+		destroyStringInfo(&q);
+
 		if (c == '\n')
 			appendStringInfoChar(inBuf, (char) '\n');
 	}
@@ -1310,7 +1312,7 @@ process_global_sql_commands(PGconn *conn, const char *dumpdirpath, const char *o
 	appendStringInfoString(&user_create, "CREATE ROLE ");
 	/* should use fmtId here, but we don't know the encoding */
 	appendStringInfoString(&user_create, PQuser(conn));
-	appendStringInfoString(&user_create, ";");
+	appendStringInfoChar(&user_create, ';');
 
 	/* Process file till EOF and execute sql statements. */
 	while (read_one_statement(&sqlstatement, pfile) != EOF)
