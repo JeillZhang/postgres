@@ -304,16 +304,25 @@ from the grouping.  This was already true for non-deferred primary keys.
 <!--
 Author: Richard Guo <rguo@postgresql.org>
 2024-10-09 [67a54b9e8] Allow pushdown of HAVING clauses with grouping sets
+Author: Richard Guo <rguo@postgresql.org>
+2024-09-10 [247dea89f] Introduce an RTE for the grouping step
+Author: Richard Guo <rguo@postgresql.org>
+2024-09-10 [f5050f795] Mark expressions nullable by grouping sets
+Author: Richard Guo <rguo@postgresql.org>
+2025-03-13 [cc5d98525] Fix incorrect handling of subquery pullup
 -->
 
 <listitem>
 <para>
 Allow some HAVING clauses on GROUPING SETS to be pushed to WHERE clauses (Richard Guo)
 <ulink url="&commit_baseurl;67a54b9e8">&sect;</ulink>
+<ulink url="&commit_baseurl;247dea89f">&sect;</ulink>
+<ulink url="&commit_baseurl;f5050f795">&sect;</ulink>
+<ulink url="&commit_baseurl;cc5d98525">&sect;</ulink>
 </para>
 
 <para>
-This allows earlier row filtering.
+This allows earlier row filtering.  This release also fixes some GROUPING SETS queries that used to return incorrect results.
 </para>
 </listitem>
 
@@ -3304,7 +3313,7 @@ Author: Tatsuo Ishii <ishii@postgresql.org>
 
 <listitem>
 <para>
-Have pgbench report the number of failed transactions (Yugo Nagata)
+Have pgbench report the number of failed, retried, or skipped transactions in per-script reports (Yugo Nagata)
 <ulink url="&commit_baseurl;cae0f3c40">&sect;</ulink>
 </para>
 </listitem>
