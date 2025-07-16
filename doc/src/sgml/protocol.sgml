@@ -3492,6 +3492,7 @@ psql "dbname=postgres replication=database" -c "IDENTIFY_SYSTEM;"
       <para>
        Boolean option to use binary transfer mode.  Binary mode is faster
        than the text mode but slightly less robust.
+       The default is <literal>off</literal>.
       </para>
      </listitem>
     </varlistentry>
@@ -3504,6 +3505,7 @@ psql "dbname=postgres replication=database" -c "IDENTIFY_SYSTEM;"
       <para>
        Boolean option to enable sending the messages that are written
        by <function>pg_logical_emit_message</function>.
+       The default is <literal>off</literal>.
       </para>
      </listitem>
     </varlistentry>
@@ -3514,11 +3516,13 @@ psql "dbname=postgres replication=database" -c "IDENTIFY_SYSTEM;"
      </term>
      <listitem>
       <para>
-       Boolean option to enable streaming of in-progress transactions.
-       It accepts an additional value "parallel" to enable sending extra
-       information with some messages to be used for parallelisation.
-       Minimum protocol version 2 is required to turn it on.  Minimum protocol
-       version 4 is required for the "parallel" option.
+       Option to enable streaming of in-progress transactions. Valid values are
+       <literal>off</literal> (the default), <literal>on</literal> and
+       <literal>parallel</literal>. The setting <literal>parallel</literal>
+       enables sending extra information with some messages to be used for
+       parallelization. Minimum protocol version 2 is required to turn it
+       <literal>on</literal>.  Minimum protocol version 4 is required for the
+       <literal>parallel</literal> value.
       </para>
      </listitem>
     </varlistentry>
@@ -3531,6 +3535,7 @@ psql "dbname=postgres replication=database" -c "IDENTIFY_SYSTEM;"
       <para>
        Boolean option to enable two-phase transactions.   Minimum protocol
        version 3 is required to turn it on.
+       The default is <literal>off</literal>.
       </para>
      </listitem>
     </varlistentry>
@@ -3547,6 +3552,7 @@ psql "dbname=postgres replication=database" -c "IDENTIFY_SYSTEM;"
        to send the changes regardless of their origin.  This can be used
        to avoid loops (infinite replication of the same data) among
        replication nodes.
+       The default is <literal>any</literal>.
       </para>
      </listitem>
     </varlistentry>
