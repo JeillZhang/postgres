@@ -68,17 +68,17 @@ int128_add_uint64(INT128 *i128, uint64 v)
 #else
 	/*
 	 * First add the value to the .lo part, then check to see if a carry needs
-	 * to be propagated into the .hi part.  A carry is needed if both inputs
-	 * have high bits set, or if just one input has high bit set while the new
-	 * .lo part doesn't.  Remember that .lo part is unsigned; we cast to
-	 * signed here just as a cheap way to check the high bit.
+	 * to be propagated into the .hi part.  Since this is unsigned integer
+	 * arithmetic, which is just modular arithmetic, a carry is needed if the
+	 * new .lo part is less than the old .lo part (i.e., if modular
+	 * wrap-around occurred).  Writing this in the form below, rather than
+	 * using an "if" statement causes modern compilers to produce branchless
+	 * machine code identical to the native code.
 	 */
 	uint64		oldlo = i128->lo;
 
 	i128->lo += v;
-	if (((int64) v < 0 && (int64) oldlo < 0) ||
-		(((int64) v < 0 || (int64) oldlo < 0) && (int64) i128->lo >= 0))
-		i128->hi++;
+	i128->hi += (i128->lo < oldlo);
 #endif
 }
 
@@ -93,32 +93,28 @@ int128_add_int64(INT128 *i128, int64 v)
 #else
 	/*
 	 * This is much like the above except that the carry logic differs for
-	 * negative v.  Ordinarily we'd need to subtract 1 from the .hi part
-	 * (corresponding to adding the sign-extended bits of v to it); but if
-	 * there is a carry out of the .lo part, that cancels and we do nothing.
+	 * negative v -- we need to subtract 1 from the .hi part if the new .lo
+	 * value is greater than the old .lo value.  That can be achieved without
+	 * any branching by adding the sign bit from v (v >> 63 = 0 or -1) to the
+	 * previous result (for negative v, if the new .lo value is less than the
+	 * old .lo value, the two terms cancel and we leave the .hi part
+	 * unchanged, otherwise we subtract 1 from the .hi part).  With modern
+	 * compilers this often produces machine code identical to the native
+	 * code.
 	 */
 	uint64		oldlo = i128->lo;
 
 	i128->lo += v;
-	if (v >= 0)
-	{
-		if ((int64) oldlo < 0 && (int64) i128->lo >= 0)
-			i128->hi++;
-	}
-	else
-	{
-		if (!((int64) oldlo < 0 || (int64) i128->lo >= 0))
-			i128->hi--;
-	}
+	i128->hi += (i128->lo < oldlo) + (v >> 63);
 #endif
 }
 
 /*
- * INT64_AU32 extracts the most significant 32 bits of int64 as int64, while
- * INT64_AL32 extracts the least significant 32 bits as uint64.
+ * INT64_HI_INT32 extracts the most significant 32 bits of int64 as int32.
+ * INT64_LO_UINT32 extracts the least significant 32 bits as uint32.
  */
-#define INT64_AU32(i64) ((i64) >> 32)
-#define INT64_AL32(i64) ((i64) & UINT64CONST(0xFFFFFFFF))
+#define INT64_HI_INT32(i64)		((int32) ((i64) >> 32))
+#define INT64_LO_UINT32(i64)	((uint32) (i64))
 
 /*
  * Add the 128-bit product of two int64 values into an INT128 variable.
@@ -133,7 +129,7 @@ int128_add_int64_mul_int64(INT128 *i128, int64 x, int64 y)
 	 */
 	*i128 += (int128) x * (int128) y;
 #else
-	/* INT64_AU32 must use arithmetic right shift */
+	/* INT64_HI_INT32 must use arithmetic right shift */
 	StaticAssertDecl(((int64) -1 >> 1) == (int64) -1,
 					 "arithmetic right shift is needed");
 
@@ -158,33 +154,27 @@ int128_add_int64_mul_int64(INT128 *i128, int64 x, int64 y)
 	/* No need to work hard if product must be zero */
 	if (x != 0 && y != 0)
 	{
-		int64		x_u32 = INT64_AU32(x);
-		uint64		x_l32 = INT64_AL32(x);
-		int64		y_u32 = INT64_AU32(y);
-		uint64		y_l32 = INT64_AL32(y);
+		int32		x_hi = INT64_HI_INT32(x);
+		uint32		x_lo = INT64_LO_UINT32(x);
+		int32		y_hi = INT64_HI_INT32(y);
+		uint32		y_lo = INT64_LO_UINT32(y);
 		int64		tmp;
 
 		/* the first term */
-		i128->hi += x_u32 * y_u32;
+		i128->hi += (int64) x_hi * (int64) y_hi;
 
-		/* the second term: sign-extend it only if x is negative */
-		tmp = x_u32 * y_l32;
-		if (x < 0)
-			i128->hi += INT64_AU32(tmp);
-		else
-			i128->hi += ((uint64) tmp) >> 32;
-		int128_add_uint64(i128, ((uint64) INT64_AL32(tmp)) << 32);
+		/* the second term: sign-extended with the sign of x */
+		tmp = (int64) x_hi * (int64) y_lo;
+		i128->hi += INT64_HI_INT32(tmp);
+		int128_add_uint64(i128, ((uint64) INT64_LO_UINT32(tmp)) << 32);
 
-		/* the third term: sign-extend it only if y is negative */
-		tmp = x_l32 * y_u32;
-		if (y < 0)
-			i128->hi += INT64_AU32(tmp);
-		else
-			i128->hi += ((uint64) tmp) >> 32;
-		int128_add_uint64(i128, ((uint64) INT64_AL32(tmp)) << 32);
+		/* the third term: sign-extended with the sign of y */
+		tmp = (int64) x_lo * (int64) y_hi;
+		i128->hi += INT64_HI_INT32(tmp);
+		int128_add_uint64(i128, ((uint64) INT64_LO_UINT32(tmp)) << 32);
 
 		/* the fourth term: always unsigned */
-		int128_add_uint64(i128, x_l32 * y_l32);
+		int128_add_uint64(i128, (uint64) x_lo * (uint64) y_lo);
 	}
 #endif
 }
