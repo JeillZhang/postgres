@@ -201,9 +201,6 @@ test_bms_make_singleton(PG_FUNCTION_ARGS)
 	Bitmapset  *bms;
 	int32		member;
 
-	if (PG_ARGISNULL(0))
-		PG_RETURN_NULL();		/* invalid input */
-
 	member = PG_GETARG_INT32(0);
 	bms = bms_make_singleton(member);
 
@@ -542,8 +539,6 @@ test_bms_join(PG_FUNCTION_ARGS)
 
 	/* either input can be recycled */
 	result_bms = bms_join(bms1, bms2);
-
-	/* memory cleanup seems more tricky than it's worth here */
 
 	PG_RETURN_BITMAPSET_AS_TEXT(result_bms);
 }
