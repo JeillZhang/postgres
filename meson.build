@@ -2154,7 +2154,6 @@ common_warning_flags = [
   '-Werror=unguarded-availability-new',
   '-Wendif-labels',
   '-Wmissing-format-attribute',
-  '-Wimplicit-fallthrough=5',
   '-Wcast-function-type',
   '-Wshadow=compatible-local',
   # This was included in -Wall/-Wformat in older GCC versions
@@ -2165,6 +2164,24 @@ cflags_warn += cc.get_supported_arguments(common_warning_flags)
 if have_cxx
   cxxflags_warn += cxx.get_supported_arguments(common_warning_flags)
 endif
+
+# To require fallthrough attribute annotations, use
+# -Wimplicit-fallthrough=5 with gcc and -Wimplicit-fallthrough with
+# clang.  The latter is also accepted on gcc but does not enforce
+# attribute annotations, so test the former first.
+fallthrough_warning_flags = ['-Wimplicit-fallthrough=5', '-Wimplicit-fallthrough']
+foreach w : fallthrough_warning_flags
+  if cc.has_argument(w)
+    cflags_warn += w
+    break
+  endif
+endforeach
+foreach w : fallthrough_warning_flags
+  if have_cxx and cxx.has_argument(w)
+    cxxflags_warn += w
+    break
+  endif
+endforeach
 
 # A few places with imported code get a pass on -Wdeclaration-after-statement, remember
 # the result for them
@@ -3104,6 +3121,7 @@ add_project_link_arguments(ldflags, language: ['c', 'cpp'])
 # list of targets for various alias targets
 backend_targets = []
 bin_targets = []
+libpq_targets = []
 pl_targets = []
 contrib_targets = []
 testprep_targets = []
@@ -3530,19 +3548,12 @@ endif
 installed_targets = [
   backend_targets,
   bin_targets,
-  libpq_st,
+  libpq_targets,
   pl_targets,
   contrib_targets,
   nls_mo_targets,
   ecpg_targets,
 ]
-
-if oauth_flow_supported
-  installed_targets += [
-    libpq_oauth_so,
-    libpq_oauth_st,
-  ]
-endif
 
 # all targets that require building code
 all_built = [
@@ -3880,7 +3891,7 @@ add_test_setup('running',
 ###############################################################
 
 alias_target('backend', backend_targets)
-alias_target('bin', bin_targets + [libpq_st])
+alias_target('bin', bin_targets + libpq_targets)
 alias_target('pl', pl_targets)
 alias_target('contrib', contrib_targets)
 alias_target('testprep', testprep_targets)
