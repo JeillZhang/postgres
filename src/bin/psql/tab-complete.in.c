@@ -1240,7 +1240,7 @@ Copy_common_options, "DEFAULT", "FORCE_NOT_NULL", "FORCE_NULL", "FREEZE", \
 
 /* COPY TO options */
 #define Copy_to_options \
-Copy_common_options, "FORCE_QUOTE"
+Copy_common_options, "FORCE_QUOTE", "FORCE_ARRAY"
 
 /*
  * These object types were introduced later than our support cutoff of
@@ -3461,7 +3461,7 @@ match_previous_words(int pattern_id,
 
 			/* Complete COPY <sth> FROM|TO filename WITH (FORMAT */
 			else if (TailMatches("FORMAT"))
-				COMPLETE_WITH("binary", "csv", "text");
+				COMPLETE_WITH("binary", "csv", "text", "json");
 
 			/* Complete COPY <sth> FROM|TO filename WITH (FREEZE */
 			else if (TailMatches("FREEZE"))
