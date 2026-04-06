@@ -1824,6 +1824,7 @@ NextSampleBlock_function
 NextSampleTuple_function
 NextValueExpr
 Node
+NodeInstrumentation
 NodeTag
 NonEmptyRange
 NoneCompressorState
@@ -2865,9 +2866,14 @@ SharedTypmodTableEntry
 Sharedsort
 ShellTypeInfo
 ShippableCacheEntry
-ShmemAllocatorData
 ShippableCacheKey
+ShmemAllocatorData
+ShmemCallbacks
 ShmemIndexEnt
+ShmemHashOpts
+ShmemRequest
+ShmemRequestKind
+ShmemStructOpts
 ShutdownForeignScan_function
 ShutdownInformation
 ShutdownMode
@@ -2896,9 +2902,9 @@ SlotInvalidationCauseMap
 SlotNumber
 SlotSyncCtxStruct
 SlotSyncSkipReason
-SlruCtl
-SlruCtlData
+SlruDesc
 SlruErrorCause
+SlruOpts
 SlruPageStatus
 SlruScanCallback
 SlruSegState
@@ -3141,6 +3147,7 @@ TestDSMRegistryHashEntry
 TestDSMRegistryStruct
 TestDecodingData
 TestDecodingTxnData
+TestShmemData
 TestSpec
 TestValueType
 TextFreq
@@ -3438,9 +3445,9 @@ WorkTableScan
 WorkTableScanState
 WorkerInfo
 WorkerInfoData
-WorkerInstrumentation
 WorkerJobDumpPtrType
 WorkerJobRestorePtrType
+WorkerNodeInstrumentation
 Working_State
 WriteBufPtrType
 WriteBytePtrType
