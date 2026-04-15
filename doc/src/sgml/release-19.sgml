@@ -597,6 +597,22 @@ New server variables are io_min_workers, io_max_workers, io_worker_idle_timeout,
 </listitem>
 
 <!--
+Author: Melanie Plageman <melanieplageman@gmail.com>
+2026-03-30 [b46e1e54d] Allow on-access pruning to set pages all-visible
+-->
+
+<listitem>
+<para>
+Allow query table scans to mark pages as all-visible in the free space map (Melanie Plageman)
+<ulink url="&commit_baseurl;b46e1e54d">&sect;</ulink>
+</para>
+
+<para>
+Previously only VACUUM and COPY FREEZE could this.
+</para>
+</listitem>
+
+<!--
 Author: Masahiko Sawada <msawada@postgresql.org>
 2026-04-06 [1ff3180ca] Allow autovacuum to use parallel vacuum workers.
 Author: Masahiko Sawada <msawada@postgresql.org>
@@ -605,7 +621,7 @@ Author: Masahiko Sawada <msawada@postgresql.org>
 
 <listitem>
 <para>
-Allow autovacuum to use parallel vacuum workers (Daniil Davydov, Aleksander Alekseev)
+Allow autovacuum to use parallel vacuum workers (Daniil Davydov)
 <ulink url="&commit_baseurl;1ff3180ca">&sect;</ulink>
 <ulink url="&commit_baseurl;2a3d2f9f6">&sect;</ulink>
 </para>
@@ -733,7 +749,7 @@ Author: David Rowley <drowley@postgresql.org>
 
 <listitem>
 <para>
-Improve performance of internal row formation (David Rowley)
+Improve performance of internal row deformation (David Rowley)
 <ulink url="&commit_baseurl;c456e3911">&sect;</ulink>
 </para>
 </listitem>
@@ -771,7 +787,7 @@ Author: Andres Freund <andres@anarazel.de>
 
 <listitem>
 <para>
-Improve timing performance measurements (Lukas Fittl, Andres Freund, David Geier, Lukas Fittl, David Geier)
+Improve timing performance measurements (Lukas Fittl, Andres Freund, David Geier, Lukas Fittl)
 <ulink url="&commit_baseurl;294520c44">&sect;</ulink>
 <ulink url="&commit_baseurl;16fca4825">&sect;</ulink>
 </para>
@@ -1206,13 +1222,30 @@ Author: Daniel Gustafsson <dgustafsson@postgresql.org>
 
 <listitem>
 <para>
-Allow online enabling and disabling of data checksums (Daniel Gustafsson, Magnus Hagander, Tomas Vondra, Lakshmi N)
+Allow online enabling and disabling of data checksums (Daniel Gustafsson, Magnus Hagander, Tomas Vondra)
 <ulink url="&commit_baseurl;f19c0ecca">&sect;</ulink>
 <ulink url="&commit_baseurl;b364828f8">&sect;</ulink>
 </para>
 
 <para>
 Previously the checksum status could only be set at initialization and changed only while the cluster was offline using pg_checksums.
+</para>
+</listitem>
+
+<!--
+Author: Nathan Bossart <nathan@postgresql.org>
+2026-03-27 [d7965d65f] Add rudimentary table prioritization to autovacuum.
+-->
+
+<listitem>
+<para>
+Add scoring system to control the order that tables are autovacuumed (Nathan Bossart)
+<ulink url="&commit_baseurl;d7965d65f">&sect;</ulink>
+</para>
+
+<para>
+The new server variables are autovacuum_freeze_score_weight, autovacuum_multixact_freeze_score_weight, autovacuum_vacuum_score_weight, autovacuum_vacuum_insert_score_weight, and
+autovacuum_analyze_score_weight.
 </para>
 </listitem>
 
@@ -1445,7 +1478,7 @@ Author: Amit Kapila <akapila@postgresql.org>
 
 <listitem>
 <para>
-Allow CREATE/ALTER PUBLICATION to exclude some tables using the EXCEPT TABLE clause (Vignesh C, Shlok Kyal)
+Allow CREATE/ALTER PUBLICATION to exclude some tables using the EXCEPT clause (Vignesh C, Shlok Kyal)
 <ulink url="&commit_baseurl;493f8c643">&sect;</ulink>
 <ulink url="&commit_baseurl;6b0550c45">&sect;</ulink>
 <ulink url="&commit_baseurl;fd366065e">&sect;</ulink>
@@ -1700,7 +1733,7 @@ Author: Dean Rasheed <dean.a.rasheed@gmail.com>
 
 <listitem>
 <para>
-Add support for INSERT ... RETURNING ... ON CONFLICT DO SELECT (Andreas Karlsson,  Marko Tiikkaja, Viktor Holmberg)
+Add support for INSERT ... ON CONFLICT DO SELECT ... RETURNING (Andreas Karlsson,  Marko Tiikkaja, Viktor Holmberg)
 <ulink url="&commit_baseurl;88327092f">&sect;</ulink>
 </para>
 
@@ -1982,7 +2015,7 @@ Allow COPY TO to output partitioned tables (Jian He, Ajin Cherian)
 </para>
 
 <para>
-Previously COPY (SELECT ...) has to be used to output partitioned tables.
+Previously COPY (SELECT ...) had to be used to output partitioned tables.  This also improves logical replication table synchronization.
 </para>
 </listitem>
 
@@ -2545,7 +2578,7 @@ Author: Fujii Masao <fujii@postgresql.org>
 
 <listitem>
 <para>
-Change vacuumdb's --analyze-only option to analyze partitioned tables when now targets are specified (Laurenz Albe, Mircea Cadariu)
+Change vacuumdb's --analyze-only option to analyze partitioned tables when no targets are specified (Laurenz Albe, Mircea Cadariu)
 <ulink url="&commit_baseurl;6429e5b77">&sect;</ulink>
 </para>
 
@@ -3075,7 +3108,7 @@ Author: Heikki Linnakangas <heikki.linnakangas@iki.fi>
 
 <listitem>
 <para>
-Add simplified shared memory registration function ShmemRequestStruct() (Ashutosh Bapat)
+Add simplified and improved shared memory registration function ShmemRequestStruct (Heikki Linnakangas, Ashutosh Bapat)
 <ulink url="&commit_baseurl;283e823f9">&sect;</ulink>
 </para>
 
